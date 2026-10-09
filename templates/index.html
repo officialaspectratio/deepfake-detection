@@ -79,16 +79,17 @@
         .confidence-text { font-size: 18px; margin-top: 5px; }
         
         .uncertainty-bar {
-            height: 12px;
-            border-radius: 6px;
-            margin-top: 15px;
-            background: #ddd;
+            height: 14px;
+            border-radius: 7px;
+            margin-top: 5px;
+            background: #e0e0e0;
+            overflow: hidden;
         }
         .uncertainty-fill {
             height: 100%;
-            border-radius: 6px;
+            border-radius: 7px;
             width: 0%;
-            transition: width 1s;
+            transition: width 0.8s ease-in-out;
         }
         .green { background-color: #2e7d32; }
         .amber { background-color: #f57f17; }
@@ -157,10 +158,16 @@
             <div id="verdictBox" class="verdict-box">
                 <p id="verdictText" class="verdict-text"></p>
                 <p id="confidenceText" class="confidence-text"></p>
-                <div class="uncertainty-bar">
-                    <div id="uncertaintyFill" class="uncertainty-fill"></div>
+                <div style="margin: 20px auto 10px; max-width: 600px; text-align: left;">
+                    <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; font-weight:600;">
+                        <span>Model Certainty & Stability</span>
+                        <span id="certaintyPercent"></span>
+                    </div>
+                    <div class="uncertainty-bar">
+                        <div id="uncertaintyFill" class="uncertainty-fill"></div>
+                    </div>
                 </div>
-                <p id="uncertaintyMsg" style="margin-top:10px; font-style:italic;"></p>
+                <p id="uncertaintyMsg" style="margin-top:8px; font-style:italic; font-size:14px;"></p>
             </div>
 
             <div class="panel">
@@ -247,14 +254,32 @@
             document.getElementById('confidenceText').innerText = 
                 `Confidence: ${data.confidence}% (Raw: ${data.raw_confidence}%)`;
 
-            // 3. Uncertainty Bar
+            // 3. Uncertainty / Certainty Meter
             const uncFill = document.getElementById('uncertaintyFill');
             uncFill.className = 'uncertainty-fill ' + data.uncertainty_colour;
-            // Set width based on uncertainty (multiplied by 100 for visual scale, max 100)
-            let barWidth = Math.min(data.uncertainty * 300, 100); 
-            uncFill.style.width = barWidth + '%';
+            
+            // Map standard deviation to an intuitive 0-100% Stability/Certainty score
+            // Low deviation (<0.05) -> 90-98% filled green (High Confidence)
+            // Moderate deviation (0.05-0.15) -> 60-85% filled amber (Moderate Confidence)
+            // High deviation (>0.15) -> 20-45% filled red (Low Confidence)
+            let certaintyScore;
+            if (data.uncertainty < 0.05) {
+                certaintyScore = Math.max(90, Math.min(99, Math.round(100 - (data.uncertainty * 200))));
+            } else if (data.uncertainty < 0.15) {
+                certaintyScore = Math.max(55, Math.min(85, Math.round(100 - (data.uncertainty * 300))));
+            } else {
+                certaintyScore = Math.max(15, Math.min(45, Math.round(60 - (data.uncertainty * 100))));
+            }
+            
+            // Trigger smooth fill animation
+            uncFill.style.width = '0%';
+            setTimeout(() => {
+                uncFill.style.width = certaintyScore + '%';
+            }, 60);
+
+            document.getElementById('certaintyPercent').innerText = `${certaintyScore}% (${data.uncertainty_tier})`;
             document.getElementById('uncertaintyMsg').innerText = 
-                `${data.uncertainty_tier}: ${data.uncertainty_message} (Deviation: ${data.uncertainty})`;
+                `${data.uncertainty_tier}: ${data.uncertainty_message} (Deviation: ±${data.uncertainty})`;
 
             // 4. Explanation Text
             document.getElementById('explanationText').innerText = data.explanation;
@@ -291,6 +316,7 @@
             document.getElementById('resultsSection').style.display = 'none';
             document.getElementById('uploadSection').style.display = 'block';
             document.getElementById('imageInput').value = '';
+            document.getElementById('uncertaintyFill').style.width = '0%';
         }
     </script>
 </body>

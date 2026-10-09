@@ -24,7 +24,7 @@ def enable_dropout(model):
             module.train()
 
 
-def mc_dropout_predict(model, image_tensor, n_passes=10):
+def mc_dropout_predict(model, image_tensor, n_passes=10, class_idx=None):
     """
     Runs the image through the model multiple times to measure uncertainty.
     
@@ -33,11 +33,12 @@ def mc_dropout_predict(model, image_tensor, n_passes=10):
         image_tensor: The preprocessed image tensor (1, 3, 224, 224)
         n_passes:     How many times to run the image through the model.
                       10 passes balances speed and statistical stability for web apps.
+        class_idx:    Class index to evaluate (0 = REAL, 1 = FAKE). Defaults to 1 (FAKE).
                       
     Returns:
-        mean_confidence: The average probability of the image being FAKE
+        mean_confidence: The average probability of the target class
         uncertainty:     The standard deviation (how much the predictions varied)
-        fake_probs:      A list of all 30 raw predictions
+        probs_list:      A list of all raw predictions
     """
     # Put the whole model in eval mode first (good practice)
     model.eval()
@@ -45,7 +46,8 @@ def mc_dropout_predict(model, image_tensor, n_passes=10):
     # Turn dropout back on just for this prediction
     enable_dropout(model)
 
-    fake_probs = []
+    probs_list = []
+    target_idx = 1 if class_idx is None else class_idx
     
     # torch.no_grad() tells PyTorch not to save memory gradients, 
     # which speeds up the process because we are only predicting, not training.
@@ -55,19 +57,18 @@ def mc_dropout_predict(model, image_tensor, n_passes=10):
             output = model(image_tensor)
             
             # Apply softmax to turn the raw output into a percentage (0.0 to 1.0)
-            # [0][1] gets the probability for class index 1 (FAKE)
-            prob = torch.softmax(output, dim=1)[0][1].item()
+            prob = torch.softmax(output, dim=1)[0][target_idx].item()
             
             # Save this prediction to our list
-            fake_probs.append(prob)
+            probs_list.append(prob)
 
-    # Calculate the average (mean) of all 30 predictions
-    mean_confidence = float(np.mean(fake_probs))
+    # Calculate the average (mean) of all predictions
+    mean_confidence = float(np.mean(probs_list))
     
     # Calculate the standard deviation (how spread out the numbers are)
-    uncertainty = float(np.std(fake_probs))
+    uncertainty = float(np.std(probs_list))
 
-    return mean_confidence, uncertainty, fake_probs
+    return mean_confidence, uncertainty, probs_list
 
 
 def get_uncertainty_tier(uncertainty):

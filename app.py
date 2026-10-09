@@ -114,7 +114,7 @@ def predict():
     overlay_img.save(heatmap_path)
 
     # ── C. MONTE CARLO DROPOUT UNCERTAINTY ───────────────────────
-    mean_conf, uncertainty, _ = mc_dropout_predict(model, tensor)
+    mean_conf, uncertainty, _ = mc_dropout_predict(model, tensor, class_idx=class_idx)
     tier, colour, unc_msg     = get_uncertainty_tier(uncertainty)
 
     # ── D. USER AWARENESS PANEL (Contribution #4) ────────────────
