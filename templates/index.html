@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detection System | FUTA</title>
+    <style>
+        /* ── CSS STYLING ── */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #0047ab;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .upload-box {
+            border: 2px dashed #0047ab;
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            background: #f8fbff;
+        }
+        .btn {
+            background-color: #0047ab;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        .btn:hover { background-color: #003380; }
+        
+        /* Results Layout */
+        .results-container { display: none; }
+        .images-grid {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .image-card {
+            flex: 1;
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .image-card img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+        
+        /* Verdict & Uncertainty */
+        .verdict-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .verdict-fake { background-color: #ffebee; color: #c62828; }
+        .verdict-real { background-color: #e8f5e9; color: #2e7d32; }
+        .verdict-text { font-size: 32px; font-weight: bold; margin: 0; }
+        .confidence-text { font-size: 18px; margin-top: 5px; }
+        
+        .uncertainty-bar {
+            height: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            background: #ddd;
+        }
+        .uncertainty-fill {
+            height: 100%;
+            border-radius: 6px;
+            width: 0%;
+            transition: width 1s;
+        }
+        .green { background-color: #2e7d32; }
+        .amber { background-color: #f57f17; }
+        .red { background-color: #c62828; }
+
+        /* Panels */
+        .panel {
+            background: #f9f9f9;
+            border-left: 4px solid #0047ab;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .panel h3 { margin-top: 0; color: #0047ab; }
+        .panel ul { margin: 0; padding-left: 20px; }
+        
+        /* Loading Spinner */
+        .loader {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #0047ab;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deepfake Detection System</h1>
+        <p>Visual Explainability & User Awareness </p>
+    </header>
+
+    <div class="container">
+        <!-- ── UPLOAD SECTION ── -->
+        <div id="uploadSection" class="upload-box">
+            <h2>Upload an Image to Analyse</h2>
+            <p>Select a social media image to check if it is AI-generated.</p>
+            <input type="file" id="imageInput" accept="image/*">
+            <br>
+            <button class="btn" onclick="analyseImage()">Analyse Image</button>
+        </div>
+
+        <!-- ── LOADING SPINNER ── -->
+        <div id="loader" class="loader"></div>
+
+        <!-- ── RESULTS SECTION (Hidden at first) ── -->
+        <div id="resultsSection" class="results-container">
+            <button class="btn" style="background:#555; margin-bottom:20px;" onclick="resetPage()">Analyse Another Image</button>
+            
+            <div class="images-grid">
+                <div class="image-card">
+                    <h3>Original Image</h3>
+                    <img id="originalImg" src="" alt="Original">
+                </div>
+                <div class="image-card">
+                    <h3>Grad-CAM Heatmap</h3>
+                    <img id="heatmapImg" src="" alt="Heatmap">
+                </div>
+            </div>
+
+            <div id="verdictBox" class="verdict-box">
+                <p id="verdictText" class="verdict-text"></p>
+                <p id="confidenceText" class="confidence-text"></p>
+                <div class="uncertainty-bar">
+                    <div id="uncertaintyFill" class="uncertainty-fill"></div>
+                </div>
+                <p id="uncertaintyMsg" style="margin-top:10px; font-style:italic;"></p>
+            </div>
+
+            <div class="panel">
+                <h3>Plain English Explanation</h3>
+                <p id="explanationText"></p>
+            </div>
+
+            <div style="display:flex; gap:20px;">
+                <div class="panel" style="flex:1;">
+                    <h3>Visual Cues to Check</h3>
+                    <ul id="visualCuesList"></ul>
+                </div>
+                <div class="panel" style="flex:1;">
+                    <h3>Recommended Actions</h3>
+                    <ul id="actionsList"></ul>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Cross-Dataset Generalisation Report</h3>
+                <p id="genText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── JAVASCRIPT LOGIC ──
+
+        function analyseImage() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files[0]) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // Show loader, hide upload box
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+
+            // Send the image to Flask backend using fetch
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    resetPage();
+                    return;
+                }
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred while processing the image.");
+                resetPage();
+            });
+        }
+
+        function displayResults(data) {
+            // Hide loader, show results
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // 1. Images
+            document.getElementById('originalImg').src = data.original_path;
+            document.getElementById('heatmapImg').src = data.heatmap_path;
+
+            // 2. Verdict & Confidence
+            const verdictBox = document.getElementById('verdictBox');
+            const verdictText = document.getElementById('verdictText');
+            
+            verdictText.innerText = data.predicted_class;
+            if (data.predicted_class === 'FAKE') {
+                verdictBox.className = 'verdict-box verdict-fake';
+            } else {
+                verdictBox.className = 'verdict-box verdict-real';
+            }
+            document.getElementById('confidenceText').innerText = 
+                `Confidence: ${data.confidence}% (Raw: ${data.raw_confidence}%)`;
+
+            // 3. Uncertainty Bar
+            const uncFill = document.getElementById('uncertaintyFill');
+            uncFill.className = 'uncertainty-fill ' + data.uncertainty_colour;
+            // Set width based on uncertainty (multiplied by 100 for visual scale, max 100)
+            let barWidth = Math.min(data.uncertainty * 300, 100); 
+            uncFill.style.width = barWidth + '%';
+            document.getElementById('uncertaintyMsg').innerText = 
+                `${data.uncertainty_tier}: ${data.uncertainty_message} (Deviation: ${data.uncertainty})`;
+
+            // 4. Explanation Text
+            document.getElementById('explanationText').innerText = data.explanation;
+
+            // 5. Visual Cues List
+            const cuesList = document.getElementById('visualCuesList');
+            cuesList.innerHTML = '';
+            data.visual_cues.forEach(cue => {
+                let li = document.createElement('li');
+                li.innerText = cue;
+                cuesList.appendChild(li);
+            });
+
+            // 6. Actions List
+            const actionsList = document.getElementById('actionsList');
+            actionsList.innerHTML = '';
+            data.actions.forEach(action => {
+                let li = document.createElement('li');
+                li.innerText = action;
+                actionsList.appendChild(li);
+            });
+
+            // 7. Generalisation Report
+            const gen = data.generalisation;
+            document.getElementById('genText').innerHTML = 
+                `<strong>In-Domain (CIFAKE) Accuracy:</strong> ${gen.in_domain.accuracy * 100}%<br>` +
+                `<strong>Out-Domain (StyleGAN) Accuracy:</strong> ${gen.out_domain.accuracy * 100}%<br>` +
+                `<strong>Generalisation Gap:</strong> ${gen.generalisation_gap * 100}%<br><br>` +
+                `<em>${gen.explanation}</em>`;
+        }
+
+        function resetPage() {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('imageInput').value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Python virtual environment (5.2 GB - do not push to GitHub)
+venv/
+env/
+.env
+
+# Datasets and archives (~500 MB - do not push to GitHub)
+dataset/
+dataset.zip
+train.py
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary uploaded images from previous testing
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store

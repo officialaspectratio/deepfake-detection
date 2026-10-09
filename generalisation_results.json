@@ -1,0 +1,14 @@
+{
+    "in_domain": {
+        "dataset": "CIFAKE (Stable Diffusion)",
+        "accuracy": 0.9660,
+        "note": "Tested on 20,000 held-out images from CIFAKE"
+    },
+    "out_domain": {
+        "dataset": "140k Real & Fake Faces (StyleGAN)",
+        "accuracy": 0.5250, 
+        "note": "Tested on 2,000 sampled images from StyleGAN dataset"
+    },
+    "generalisation_gap": 0.4410,
+    "explanation": "The model was trained on Stable Diffusion fakes. It may perform differently on GAN-generated fakes, which use a different generation method."
+}
