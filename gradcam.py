@@ -124,6 +124,9 @@ class GradCAM:
         # dimensions of the last conv layer's output.
         cam = (weights * self.activations).sum(dim=1, keepdim=True)
 
+        # Free gradient memory immediately to keep RAM usage low
+        self.model.zero_grad(set_to_none=True)
+
         # Apply ReLU — keeps only POSITIVE contributions.
         # Why? Negative values mean a region argued AGAINST the
         # prediction. We only want to show regions that argued FOR it.

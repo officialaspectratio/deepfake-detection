@@ -24,7 +24,7 @@ def enable_dropout(model):
             module.train()
 
 
-def mc_dropout_predict(model, image_tensor, n_passes=30):
+def mc_dropout_predict(model, image_tensor, n_passes=10):
     """
     Runs the image through the model multiple times to measure uncertainty.
     
@@ -32,7 +32,7 @@ def mc_dropout_predict(model, image_tensor, n_passes=30):
         model:        The trained PyTorch model
         image_tensor: The preprocessed image tensor (1, 3, 224, 224)
         n_passes:     How many times to run the image through the model.
-                      30 is the standard number recommended in academic papers.
+                      10 passes balances speed and statistical stability for web apps.
                       
     Returns:
         mean_confidence: The average probability of the image being FAKE
